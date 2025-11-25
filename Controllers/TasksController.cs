@@ -20,7 +20,20 @@ namespace TaskApi.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var tasks = await _context.Tasks.ToListAsync();
+            var tasks = await _context.Tasks
+                .Include(t => t.User)
+                .AsNoTracking()
+                .Select(t => new TaskWithUserDto
+                {
+                    Id = t.Id,
+                    Title = t.Title,
+                    Description = t.Description,
+                    IsCompleted = t.IsCompleted,
+                    CreatedAt = t.CreatedAt,
+                    UserId = t.UserId,
+                    UserName = t.User.Name
+                })
+                .ToListAsync();
             return Ok(tasks);
         }
 
@@ -28,7 +41,22 @@ namespace TaskApi.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var task = await _context.Tasks.FindAsync(id);
+            var task = await _context.Tasks
+                .Include(t => t.User)
+                .AsNoTracking()
+                .Where(t => t.Id == id)
+                .Select(t => new TaskWithUserDto
+                {
+                    Id = t.Id,
+                    Title = t.Title,
+                    Description = t.Description,
+                    IsCompleted = t.IsCompleted,
+                    CreatedAt = t.CreatedAt,
+                    UserId = t.UserId,
+                    UserName = t.User.Name
+                })
+                .FirstOrDefaultAsync();
+            
             if (task == null)
                 return NotFound();
             
@@ -39,13 +67,17 @@ namespace TaskApi.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateTaskDto dto)
         {
+            var userExists = await _context.Users.AnyAsync(u => u.Id == dto.UserId);
+            if(! userExists)
+                return BadRequest("User does not exist.");
+            
             var task = new TaskItem
             {
-                Id = dto.Id ?? 0,
                 Title = dto.Title,
                 Description = dto.Description,
                 IsCompleted = false,
-                CreatedAt = DateTime.Now
+                CreatedAt = DateTime.Now,
+                UserId = dto.UserId ?? 0
             };
 
             _context.Tasks.Add(task);

@@ -24,16 +24,12 @@ namespace TaskApi.Services
         {
             var task = new TaskItem
             {
-                Id = dto.Id ?? _nextId++,
+                Id = _nextId++,
                 Title = dto.Title,
                 Description = dto.Description,
                 IsCompleted = false,
                 CreatedAt = DateTime.Now
             };
-            if (dto.Id.HasValue && dto.Id.Value >= _nextId)
-            {
-                _nextId = dto.Id.Value + 1;
-            }
             _tasks.Add(task);
             return task;
         }

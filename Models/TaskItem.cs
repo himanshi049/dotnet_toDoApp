@@ -8,5 +8,11 @@ namespace TaskApi.Models
         public bool IsCompleted { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? DueDate { get; set; }
+
+        // foreign key : UserId
+        public int UserId { get; set; }
+
+        //Navigation property: many tasks belong to one user
+        public User User { get; set; }
     }
 }
