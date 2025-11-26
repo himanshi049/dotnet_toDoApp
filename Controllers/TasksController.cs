@@ -18,11 +18,37 @@ namespace TaskApi.Controllers
 
         // GET: api/tasks
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll(
+             [FromQuery] int page = 1,
+             [FromQuery] int pageSize = 10,
+             [FromQuery] int? userId = null,
+             [FromQuery] bool? isCompleted = null) 
+        
         {
-            var tasks = await _context.Tasks
-                .Include(t => t.User)
-                .AsNoTracking()
+            // Start with the base query
+            var query = _context.Tasks.AsNoTracking().AsQueryable();
+
+            // Filter by userId if provided
+            if(userId.HasValue)
+                query = query.Where(t => t.UserId == userId.Value);
+
+            // Filter by completion status if provided
+            if(isCompleted.HasValue)
+                query = query.Where(t => t.IsCompleted == isCompleted.Value);
+
+            // Validate pagination parameters
+            if(page < 1) page = 1;
+            if(pageSize < 1) pageSize = 10;
+            if(pageSize > 100) pageSize = 100;
+
+            // Calculate how many items to skip
+            int skip = (page - 1) * pageSize;
+
+            // Apply pagination and projection to DTO
+            var tasks = await query
+                .OrderBy(t => t.Id)
+                .Skip(skip)
+                .Take(pageSize)
                 .Select(t => new TaskWithUserDto
                 {
                     Id = t.Id,
@@ -34,6 +60,7 @@ namespace TaskApi.Controllers
                     UserName = t.User.Name
                 })
                 .ToListAsync();
+
             return Ok(tasks);
         }
 

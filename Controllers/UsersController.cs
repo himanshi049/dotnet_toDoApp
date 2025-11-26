@@ -3,13 +3,16 @@ using Microsoft.EntityFrameworkCore;
 using TaskApi.Models;
 using TaskApi.DTOs;
 
-namespace TaskApi.Controllers{
+namespace TaskApi.Controllers
+{
     [ApiController]
     [Route("api/[controller]")]
-    public class UserController : ControllerBase{
+    public class UserController : ControllerBase
+    {
         private readonly AppDbContext _context;
 
-        public UserController(AppDbContext context){
+        public UserController(AppDbContext context)
+        {
             _context = context;
         }
 
@@ -22,7 +25,7 @@ namespace TaskApi.Controllers{
             };
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetById), new {id = user.Id}, user);
+            return CreatedAtAction(nameof(GetById), new { id = user.Id }, user);
         }
 
         [HttpGet]
@@ -35,8 +38,23 @@ namespace TaskApi.Controllers{
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var user = await _context.Users.AsNoTracking()
-                .FirstOrDefaultAsync(u => u.Id == id);
+            var user = await _context.Users
+     .AsNoTracking()
+     .Where(u => u.Id == id)
+     .Select(u => new UserWithTasksDto
+     {
+         Id = u.Id,
+         Name = u.Name,
+         Tasks = u.Tasks.Select(t => new TaskDto
+         {
+             Id = t.Id,
+             Title = t.Title,
+             Description = t.Description,
+             IsCompleted = t.IsCompleted,
+             CreatedAt = t.CreatedAt
+         }).ToList()
+     })
+     .FirstOrDefaultAsync();
             if (user == null)
             {
                 return NotFound();
